@@ -3,6 +3,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
+from sqlalchemy import null
+
 from links import cdc_website
 from links import google
 from links import PATH
@@ -110,6 +112,7 @@ class covidProj:
     # ------------------------------------------------------------------------------------------------------------------------------------------
     def search_by_state(self):
         # clearing out Entries
+        global daily_death_count, daily_case_count
         self.totalCasesEntry.delete(0, 'end')
         self.totalDeathsEntry.delete(0, 'end')
         self.dailyStateCasesEntry.delete(0, 'end')
@@ -127,19 +130,27 @@ class covidProj:
             (By.XPATH, "//*[@id='eTST2']/div[3]/div[1]/table/tbody/tr/td[1]/div[2]/div[1]/span")))
         state_deaths = WebDriverWait(driver, 10).until(EC.element_to_be_clickable(
             (By.XPATH, "//*[@id='eTST2']/div[3]/div[1]/table/tbody/tr/td[2]/div[2]/div[1]/span")))
-        daily_case_count = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable(
+
+        #try and except in the case when a state does not have daily cases + deaths when parsing from google
+        try:
+            daily_case_count = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable(
                 (By.XPATH, "//*[@id='eTST2']/div[3]/div[1]/table/tbody/tr/td[1]/div[3]/div/span")))
-        daily_death_count = WebDriverWait(driver, 10).until(
+            daily_death_count = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable(
                 (By.XPATH, "//*[@id='eTST2']/div[3]/div[1]/table/tbody/tr/td[2]/div[3]/div/span")))
+            self.dailyStateCasesEntry.insert(0, daily_case_count.text)
+            self.dailyStateDeathsEntry.insert(0, daily_death_count.text)
+        except:
+            #set the daily cases and deaths entries to 0 when a state does not display daily covid info
+            self.dailyStateCasesEntry.insert(0, 0)
+            self.dailyStateDeathsEntry.insert(0, 0)
+
 
         # inserting variables to entries
+
         self.totalCasesEntry.insert(0, state_cases.text)
         self.totalDeathsEntry.insert(0, state_deaths.text)
-        self.dailyStateCasesEntry.insert(0, daily_case_count.text)
-        self.dailyStateDeathsEntry.insert(0, daily_death_count.text)
-
 
 if __name__ == '__main__':
     myTk = Tk()
